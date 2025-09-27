@@ -1,6 +1,18 @@
 const PlayerTop = 0;
 const PlayerBottom = 1;
 
+
+class PieceType {
+    static Lion = 0;
+    static Chick = 1;
+
+    constructor(id, image, directions) {
+        this.id = id;
+        this.image = image;
+        this.directions = directions;
+    }
+};
+
 class Piece {
     constructor(type, player) {
         this.type = type;
@@ -8,13 +20,10 @@ class Piece {
     }
 }
 
-class PieceType {
-    constructor(type, image, directions) {
-        this.type = type;
-        this.image = image;
-        this.directions = directions;
-    }
-};
+const ImageFiles = {
+    0: "l.svg",
+    1: "c.svg"
+}
 
 function getMovableCells(app, cell) {
     // cell should have a piece
@@ -65,27 +74,32 @@ function movePieceTo(app, cell) {
     cell.setPiece(piece);
     app.selectedCell = null;
     clearAllCellBorders(app);
+    app.currentPlayer = app.currentPlayer == PlayerTop ? PlayerBottom : PlayerTop;
 }
 
 function onCellClicked(app, cell) {
     if (cell.hasPiece() && cell.piece.player == app.currentPlayer) {
+        console.log(cell.piece.player, app.currentPlayer)
         selectPieceOn(app, cell);
-    } else if (isMovable(app, cell)) {
+    } else if (app.selectedCell && isMovable(app, cell)) {
+        console.log(app.currentPlayer)
         // console.log("Move to", cell.x, cell.y);
         movePieceTo(app, cell);
+        console.log(app.currentPlayer)
     }
 }
 
 class Cell {
     constructor(x, y, onclick) {
         const cell = document.createElement("div")
-        cell.className = "border border-black aspect-square flex items-center justify-center caret-transparent"
+        // cell.className = "border border-black aspect-square flex items-center justify-center caret-transparent"
+        cell.className = "aspect-square flex items-center justify-center caret-transparent"
         this.element = cell;
         this.x = x;
         this.y = y;
         this.borderClassesUnselected = ["border", "border-black"]
         this.currentBorderClasses = []
-        this.change_border(this.borderClassesUnselected);
+        this.changeBorder(this.borderClassesUnselected);
         this.piece = null;
 
         const self = this;
@@ -99,21 +113,21 @@ class Cell {
         return this.piece != null;
     }
 
-    change_border(classNames) {
+    changeBorder(classNames) {
         this._remove_and_add(this.currentBorderClasses, classNames);
         this.currentBorderClasses = classNames;
     }
 
     setBorderBlue() {
-        this.change_border(["border-4", "border-blue-400"])
+        this.changeBorder(["border-4", "border-blue-400"])
     }
 
     setBorderGreen() {
-        this.change_border(["border-4", "border-green-400"])
+        this.changeBorder(["border-4", "border-green-400"])
     }
 
     clearBorder() {
-        this.change_border(this.borderClassesUnselected);
+        this.changeBorder(this.borderClassesUnselected);
     }
 
     _remove_and_add(r, a) {
@@ -144,6 +158,35 @@ class Cell {
     }
 };
 
+class Bench {
+    constructor() {
+        const element = document.createElement("div")
+        element.className = "w-screen grid grid-cols-6";
+
+        const slots = [];
+        for (let i = 0; i < 6; ++i) {
+            const cell = document.createElement("div")
+            cell.className = "aspect-square"
+            element.appendChild(cell)
+            slots.push(cell)
+        }
+
+        this.num = 0;
+        this.element = element;
+        this.slots = slots
+    }
+
+    append(piece) {
+        const img = new Image();
+        img.src = piece.type.image;
+        if (piece.player == PlayerTop) {
+            img.className = "rotate-180";
+        }
+
+        this.slots[this.num++].appendChild(img);
+    }
+}
+
 export function init() {
     const root = document.getElementById("animal")
 
@@ -152,38 +195,48 @@ export function init() {
         currentPlayer: PlayerBottom,
         selectedCell: null,
         reserves: [[], []],
+
+        cell: function(x, y) {
+            return this.cells[x + y * 3];
+        },
     };
 
 
     const header = document.createElement("div")
     header.appendChild(document.createTextNode("help"))
-    root.appendChild(header)
+
+    const benchTop = new Bench();
+    const benchBottom = new Bench();
 
     const board = document.createElement("div")
-    board.className = "w-screen grid grid-flow-row grid-flows-4"
-
+    board.className = "p-2 w-screen grid grid-flow-row grid-flows-4"
 
     for (var j = 0; j < 4; ++j) {
         const row = document.createElement("div")
         row.className = "grid grid-cols-3"
 
         for (var i = 0; i < 3; ++i) {
-            const cell = new Cell(i, j, (c) => { onCellClicked(app, cell); });
-
+            const cell = new Cell(i, j, (c) => { onCellClicked(app, c); });
             app.cells[j * 3 + i] = cell;
-
             row.appendChild(cell.element)
         }
 
         board.appendChild(row)
     }
 
-    const Lion = new PieceType(1, "l.svg", [[-1, -1], [0, -1], [1, -1]])
-    const Chick = new PieceType(2, "c.svg", [[0, -1]])
+    const Lion = new PieceType(PieceType.Lion, "l.svg", [[-1, 1], [0, 1], [1, 1],
+    [-1, 0], [1, 0],
+    [-1, -1], [0, -1], [1, -1]])
+    const Chick = new PieceType(PieceType.Chick, "c.svg", [[0, -1]])
 
-    app.cells[0*3+1].setPiece(new Piece(Lion, PlayerTop));
-    app.cells[2*3+1].setPiece(new Piece(Chick, PlayerBottom));
-    app.cells[3*3+1].setPiece(new Piece(Lion, PlayerBottom));
+    app.cell(1, 0).setPiece(new Piece(Lion, PlayerTop));
+    app.cell(1, 1).setPiece(new Piece(Chick, PlayerTop));
 
+    app.cells[2 * 3 + 1].setPiece(new Piece(Chick, PlayerBottom));
+    app.cells[3 * 3 + 1].setPiece(new Piece(Lion, PlayerBottom));
+
+    root.appendChild(header)
+    root.appendChild(benchTop.element)
     root.appendChild(board)
+    root.appendChild(benchBottom.element)
 }
