@@ -21,8 +21,8 @@ class Piece {
 }
 
 const ImageFiles = {
-    0: "l.svg",
-    1: "c.svg"
+    [PieceType.Lion]: "l.svg",
+    [PieceType.Chick]: "c.svg"
 }
 
 function getMovableCells(app, cell) {
@@ -33,7 +33,7 @@ function getMovableCells(app, cell) {
         const x = cell.x + direction[0] * rev;
         const y = cell.y + direction[1] * rev;
         if (x >= 0 && x < 3 && y >= 0 && y < 4) {
-            cells.push(app.cells[x + y * 3]);
+            cells.push(app.board.cells[x + y * 3]);
         }
     })
 
@@ -41,7 +41,7 @@ function getMovableCells(app, cell) {
 }
 
 function selectPieceOn(app, cell) {
-    clearAllCellBorders(app);
+    app.board.clearAllCellBorders();
     cell.setBorderBlue();
     getMovableCells(app, cell).forEach((c) => {
         if (c.piece == null || c.piece.player != app.currentPlayer)
@@ -55,11 +55,11 @@ function isMovable(app, cell) {
     return getMovableCells(app, app.selectedCell).includes(cell);
 }
 
-function clearAllCellBorders(app) {
-    app.cells.forEach((c) => {
-        c.clearBorder();
-    })
-}
+// function clearAllCellBorders(app) {
+//     app.cells.forEach((c) => {
+//         c.clearBorder();
+//     })
+// }
 
 function movePieceTo(app, cell) {
     const piece = app.selectedCell.removePiece()
@@ -73,7 +73,7 @@ function movePieceTo(app, cell) {
     //console.log(piece);
     cell.setPiece(piece);
     app.selectedCell = null;
-    clearAllCellBorders(app);
+    app.board.clearAllCellBorders();
     app.currentPlayer = app.currentPlayer == PlayerTop ? PlayerBottom : PlayerTop;
 }
 
@@ -105,8 +105,7 @@ class Cell {
         const self = this;
         cell.addEventListener("click", function(e) {
             onclick(self)
-        }
-        );
+        });
     }
 
     hasPiece() {
@@ -187,18 +186,52 @@ class Bench {
     }
 }
 
+class Board {
+    constructor(onCellClicked) {
+        const board = document.createElement("div")
+        board.className = "w-screen grid grid-flow-row grid-flows-4"
+
+        const cells = new Array(12);
+        for (var j = 0; j < 4; ++j) {
+            const row = document.createElement("div")
+            row.className = "grid grid-cols-3"
+
+            for (var i = 0; i < 3; ++i) {
+                const cell = new Cell(i, j, onCellClicked);
+                cells[j * 3 + i] = cell;
+                row.appendChild(cell.element)
+            }
+
+            board.appendChild(row)
+        }
+
+        this.element = board;
+        this.cells = cells;
+    }
+
+    clearAllCellBorders() {
+        this.cells.forEach((c) => {
+            c.clearBorder();
+        })
+    }
+
+    setPiece(x, y, piece) {
+        this.cells[x + y * 3].setPiece(piece);
+    }
+}
+
 export function init() {
     const root = document.getElementById("animal")
 
     const app = {
-        cells: new Array(12),
+        // cells: new Array(12),
         currentPlayer: PlayerBottom,
         selectedCell: null,
         reserves: [[], []],
 
-        cell: function(x, y) {
-            return this.cells[x + y * 3];
-        },
+        // cell: function(x, y) {
+        //     return this.cells[x + y * 3];
+        // },
     };
 
 
@@ -208,35 +241,22 @@ export function init() {
     const benchTop = new Bench();
     const benchBottom = new Bench();
 
-    const board = document.createElement("div")
-    board.className = "p-2 w-screen grid grid-flow-row grid-flows-4"
-
-    for (var j = 0; j < 4; ++j) {
-        const row = document.createElement("div")
-        row.className = "grid grid-cols-3"
-
-        for (var i = 0; i < 3; ++i) {
-            const cell = new Cell(i, j, (c) => { onCellClicked(app, c); });
-            app.cells[j * 3 + i] = cell;
-            row.appendChild(cell.element)
-        }
-
-        board.appendChild(row)
-    }
-
-    const Lion = new PieceType(PieceType.Lion, "l.svg", [[-1, 1], [0, 1], [1, 1],
-    [-1, 0], [1, 0],
-    [-1, -1], [0, -1], [1, -1]])
+    const Lion = new PieceType(PieceType.Lion, "l.svg",
+        [[-1, 1], [0, 1], [1, 1],
+        [-1, 0], [1, 0],
+        [-1, -1], [0, -1], [1, -1]])
     const Chick = new PieceType(PieceType.Chick, "c.svg", [[0, -1]])
 
-    app.cell(1, 0).setPiece(new Piece(Lion, PlayerTop));
-    app.cell(1, 1).setPiece(new Piece(Chick, PlayerTop));
+    const board = new Board((c) => { onCellClicked(app, c); });
+    app.board = board;
 
-    app.cells[2 * 3 + 1].setPiece(new Piece(Chick, PlayerBottom));
-    app.cells[3 * 3 + 1].setPiece(new Piece(Lion, PlayerBottom));
+    board.setPiece(1, 0, new Piece(Lion, PlayerTop));
+    board.setPiece(1, 1, new Piece(Chick, PlayerTop));
+    board.setPiece(1, 2, new Piece(Chick, PlayerBottom));
+    board.setPiece(1, 3, new Piece(Lion, PlayerBottom));
 
     root.appendChild(header)
     root.appendChild(benchTop.element)
-    root.appendChild(board)
+    root.appendChild(board.element)
     root.appendChild(benchBottom.element)
 }
