@@ -4,14 +4,30 @@ const PlayerBottom = 1;
 
 class PieceType {
     static Lion = 0;
-    static Chick = 1;
+    static Elephant = 1;
+    static Giraffe = 2;
+    static Chick = 3;
+    static Chicken = 4;
 
-    constructor(id, image, directions) {
+    constructor(id, directions) {
         this.id = id;
-        this.image = image;
         this.directions = directions;
     }
 };
+
+const Lion = new PieceType(PieceType.Lion,
+    [[-1, 1], [0, 1], [1, 1],
+    [-1, 0], [1, 0],
+    [-1, -1], [0, -1], [1, -1]])
+const Elephant = new PieceType(PieceType.Elephant,
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]])
+const Giraffe = new PieceType(PieceType.Giraffe,
+    [[0, -1], [-1, 0], [1, 0], [0, 1]])
+const Chick = new PieceType(PieceType.Chick, [[0, -1]])
+const Chicken = new PieceType(PieceType.Chicken,
+    [[-1, -1], [0, -1], [1, -1],
+    [-1, 0], [0, 1], [1, 0]])
+
 
 class Piece {
     constructor(type, player) {
@@ -21,90 +37,221 @@ class Piece {
 }
 
 const ImageFiles = {
-    [PieceType.Lion]: "l.svg",
-    [PieceType.Chick]: "c.svg"
+    [PieceType.Lion]: "img/lion.png",
+    [PieceType.Elephant]: "img/elephant.png",
+    [PieceType.Giraffe]: "img/giraffe.png",
+    [PieceType.Chick]: "img/chick.png",
+    [PieceType.Chicken]: "img/chicken.png"
 }
 
-function getMovableCells(app, cell) {
-    // cell should have a piece
+
+function remove_and_add(element, removeList, addList) {
+    removeList.forEach((c) => {
+        element.classList.remove(c);
+    })
+    addList.forEach((c) => {
+        element.classList.add(c);
+    })
+}
+
+// piece is on `pos`
+function getDestinations(pos, piece) {
+    const [x0, y0] = pos;
     const cells = [];
-    cell.piece.type.directions.forEach((direction) => {
-        const rev = cell.piece.player == PlayerBottom ? 1 : -1;
-        const x = cell.x + direction[0] * rev;
-        const y = cell.y + direction[1] * rev;
+    piece.type.directions.forEach((direction) => {
+        const rev = piece.player == PlayerBottom ? 1 : -1;
+        const x = x0 + direction[0] * rev;
+        const y = y0 + direction[1] * rev;
         if (x >= 0 && x < 3 && y >= 0 && y < 4) {
-            cells.push(app.board.cells[x + y * 3]);
+            cells.push([x, y])
         }
     })
 
     return cells;
 }
 
-function selectPieceOn(app, cell) {
-    app.board.clearAllCellBorders();
-    cell.setBorderBlue();
-    getMovableCells(app, cell).forEach((c) => {
-        if (c.piece == null || c.piece.player != app.currentPlayer)
-            c.setBorderGreen();
-    })
+class Game {
+    constructor() {
+        this.pieces = new Array(12); // array of piece
+        this.currentPlayer = PlayerBottom;
+        this.reserves = [[], []];
+        this.finished = false;
 
-    app.selectedCell = cell;
-}
+        // Exclusive
+        this.selectedCell = null; // [x, y]
+        this.selectedBenchPiece = null; // Piece
 
-function isMovable(app, cell) {
-    return getMovableCells(app, app.selectedCell).includes(cell);
-}
+        this.board = null;
 
-// function clearAllCellBorders(app) {
-//     app.cells.forEach((c) => {
-//         c.clearBorder();
-//     })
-// }
-
-function movePieceTo(app, cell) {
-    const piece = app.selectedCell.removePiece()
-
-    if (cell.piece != null) {
-        const p = cell.removePiece()
-        p.player = app.currentPlayer;
-        app.reserves[app.currentPlayer].push(p)
+        for (let i = 0; i < 12; ++i) {
+            this.pieces[i] = null;
+        }
     }
 
-    //console.log(piece);
-    cell.setPiece(piece);
-    app.selectedCell = null;
-    app.board.clearAllCellBorders();
-    app.currentPlayer = app.currentPlayer == PlayerTop ? PlayerBottom : PlayerTop;
-}
+    _getPieceOn(pos) {
+        return this.pieces[pos[0] + pos[1] * 3];
+    }
 
-function onCellClicked(app, cell) {
-    if (cell.hasPiece() && cell.piece.player == app.currentPlayer) {
-        console.log(cell.piece.player, app.currentPlayer)
-        selectPieceOn(app, cell);
-    } else if (app.selectedCell && isMovable(app, cell)) {
-        console.log(app.currentPlayer)
-        // console.log("Move to", cell.x, cell.y);
-        movePieceTo(app, cell);
-        console.log(app.currentPlayer)
+    _setPiece(pos, piece) {
+        // piece can be null
+        this.pieces[pos[0] + pos[1] * 3] = piece;
+    }
+
+    _swapPlayer() {
+        this.currentPlayer =
+            this.currentPlayer == PlayerTop ? PlayerBottom : PlayerTop;
+    }
+
+    // piece is on from_
+    getMovableCells(from_, piece) {
+        return getDestinations(from_, piece).filter((pos) => {
+            const p = this._getPieceOn(pos);
+            return p == null || p.player != piece.player;
+        });
+    }
+
+    isMovable(piece, from_, to) {
+        return this.getMovableCells(from_, piece).some((pos) => {
+            return pos[0] == to[0] && pos[1] == to[1];
+        });
+    }
+
+    _checkTry() {
+        if (this.currentPlayer == PlayerTop) {
+            for (let x = 0; x < 3; ++x) {
+                const p = this._getPieceOn([x, 0]);
+                if (p != null && p.player == PlayerBottom && p.type == Lion)
+                    return PlayerBottom;
+            }
+        } else {
+            for (let x = 0; x < 3; ++x) {
+                const p = this._getPieceOn([x, 3]);
+                if (p != null && p.player == PlayerTop && p.type == Lion)
+                    return PlayerTop;
+            }
+        }
+        return null;
+    }
+
+    movePieceTo(piece, from_, to) {
+        const captured = this._getPieceOn(to);
+        console.log(captured)
+
+        this.selectedCell = null;
+        this._setPiece(from_, null);
+        this._setPiece(to, piece);
+
+        if (captured != null) {
+            captured.player = this.currentPlayer;
+            if (captured.type == Chicken)
+                captured.type = Chick;
+            this.reserves[this.currentPlayer].push(captured);
+        }
+
+        if (piece.type == Chick &&
+            (this.currentPlayer == PlayerTop && to[1] == 3
+                || this.currentPlayer == PlayerBottom && to[1] == 0)) {
+            // console.log("chick reached at last row");
+            piece.type = Chicken;
+        }
+
+
+        this.board.movePieceTo(piece, from_, to, captured);
+
+        if (captured != null && captured.type == Lion) {
+            this.finished = true;
+            this.board.finish(this.currentPlayer);
+            return;
+        }
+
+        const winner = this._checkTry();
+        if (winner != null) {
+            this.finished = true;
+            this.board.finish(winner);
+            return;
+        }
+
+        this._swapPlayer();
+        this.board.changePlayer(this.currentPlayer)
+    }
+
+    putPieceFromBench(to) {
+        const piece = this.selectedBenchPiece;
+        // assert this.currentPlayer == piece.player
+        // assert 0 <= slot < this.reserves[this.currentPlayer].length
+        console.log(piece);
+
+        const index = this.reserves[this.currentPlayer].findIndex((p) => {
+            return p == piece;
+        })
+
+        this.reserves[this.currentPlayer].splice(index, 1);
+        this._setPiece(to, piece);
+        this.selectedBenchPiece = null;
+        this._swapPlayer();
+
+        this.board.putPieceFromBench(piece, to);
+        this.board.changePlayer(this.currentPlayer)
+    }
+
+    selectPieceOn(pos, piece) {
+        this.selectedCell = pos;
+        this.selectedBenchPiece = null;
+
+        this.board.selectPieceOn(pos, this.getMovableCells(pos, piece));
+    }
+
+    selectReserveOn(piece) {
+        this.selectedCell = null;
+        this.selectedBenchPiece = piece;
+
+        this.board.selectReserveOn();
+    }
+
+    setPiece(pos, piece) {
+        this._setPiece(pos, piece);
+        this.board.setPiece(pos, piece);
+    }
+
+    onBenchPieceClicked(piece) {
+        if (this.finished || piece.player != this.currentPlayer)
+            return;
+
+        this.selectReserveOn(piece);
+    }
+
+    onCellClicked(pos) {
+        // console.log("Game.onCellClicked:", x, y);
+        if (this.finished)
+            return;
+
+        const piece = this._getPieceOn(pos);
+        if (piece && piece.player == this.currentPlayer) {
+            this.selectPieceOn(pos, piece);
+        } else if (this.selectedCell != null) {
+            const selectedPiece = this._getPieceOn(this.selectedCell);
+            if (this.isMovable(selectedPiece, this.selectedCell, pos)) {
+                this.movePieceTo(selectedPiece, this.selectedCell, pos);
+            }
+        } else if (this.selectedBenchPiece != null) {
+            this.putPieceFromBench(pos);
+        }
     }
 }
 
 class Cell {
-    constructor(x, y, onclick) {
+    constructor(onclick) {
         const cell = document.createElement("div")
         // cell.className = "border border-black aspect-square flex items-center justify-center caret-transparent"
         cell.className = "aspect-square flex items-center justify-center caret-transparent"
         this.element = cell;
-        this.x = x;
-        this.y = y;
-        this.borderClassesUnselected = ["border", "border-black"]
+        this.borderClassesUnselected = ["outline", "outline-1", "outline-black"]
         this.currentBorderClasses = []
         this.changeBorder(this.borderClassesUnselected);
         this.piece = null;
 
-        const self = this;
         cell.addEventListener("click", function(e) {
-            onclick(self)
+            onclick();
         });
     }
 
@@ -118,11 +265,14 @@ class Cell {
     }
 
     setBorderBlue() {
-        this.changeBorder(["border-4", "border-blue-400"])
+        // this.changeBorder(["outline", "outline-4", "outline-blue-400"])
+        this.changeBorder(["outline", "outline-1", "outline-black", "border", "border-8", "border-blue-400"])
     }
 
     setBorderGreen() {
-        this.changeBorder(["border-4", "border-green-400"])
+        // this.changeBorder(["outline", "outline-4", "outline-green-400"])
+        // this.changeBorder(["outline", "outline-1", "outline-black", "border", "border-4", "border-green-400"])
+        this.changeBorder(["outline", "outline-1", "outline-black", "border", "border-8", "border-green-600"])
     }
 
     clearBorder() {
@@ -130,12 +280,7 @@ class Cell {
     }
 
     _remove_and_add(r, a) {
-        r.forEach((c) => {
-            this.element.classList.remove(c);
-        })
-        a.forEach((c) => {
-            this.element.classList.add(c);
-        })
+        remove_and_add(this.element, r, a);
     }
 
     removePiece() {
@@ -149,114 +294,275 @@ class Cell {
         this.piece = piece
 
         const img = new Image();
-        img.src = piece.type.image;
+        //img.className = "p-1";
+        img.src = ImageFiles[piece.type.id];
         if (piece.player == PlayerTop) {
-            img.className = "rotate-180";
+            img.classList.add("rotate-180");
         }
         this.element.appendChild(img);
     }
 };
 
 class Bench {
-    constructor() {
+    constructor(pieceClickHandler) {
         const element = document.createElement("div")
-        element.className = "w-screen grid grid-cols-6";
+        element.className = "w-full grid grid-cols-6 gap gap-[1px]";
 
-        const slots = [];
+        const slots = []; // Cell
         for (let i = 0; i < 6; ++i) {
-            const cell = document.createElement("div")
-            cell.className = "aspect-square"
-            element.appendChild(cell)
+            const cell = new Cell(() => { this._onclick(i); });
+            cell.element.classList.add("p-1");
+            cell.borderClassesUnselected = []
+            cell.clearBorder()
+            element.appendChild(cell.element)
             slots.push(cell)
         }
 
         this.num = 0;
         this.element = element;
-        this.slots = slots
+        this.slots = slots;
+        this.pieceClickHandler = pieceClickHandler;
     }
 
-    append(piece) {
-        const img = new Image();
-        img.src = piece.type.image;
-        if (piece.player == PlayerTop) {
-            img.className = "rotate-180";
-        }
+    _onclick(index) {
+        if (index < this.num)
+            this.pieceClickHandler(this.slots[index].piece);
+    }
 
-        this.slots[this.num++].appendChild(img);
+    removePiece(piece) {
+        const index = this.slots.findIndex((cell) => {
+            return cell.piece == piece
+        });
+
+        this.slots[index].removePiece();
+
+        for (let i = index + 1; i < this.num; ++i) {
+            let removed = this.slots[i].removePiece();
+            this.slots[i - 1].setPiece(removed);
+        }
+        --this.num;
+
+    }
+
+    addPiece(piece) {
+        // assert this.num < 6
+        this.slots[this.num++].setPiece(piece)
+    }
+}
+
+class Message {
+    constructor() {
+        const element = document.createElement("div");
+        element.className = "rounded w-full text-center bg-white text-xl";
+
+        this.element = element;
+        this.currentBackgroundColor = "bg-white";
+        this.currentTextColor = "text-black";
+    }
+
+    reverse() {
+        this.element.classList.add("rotate-180");
+    }
+
+    setText(text) {
+        this.element.innerText = text;
+    }
+
+    changeBackgroundColor(color) {
+        remove_and_add(this.element, [this.currentBackgroundColor], [color])
+        this.currentBackgroundColor = color;
+    }
+
+    changeTextColor(color) {
+        remove_and_add(this.element, [this.currentTextColor], [color])
+        this.currentTextColor = color;
+    }
+
+    setBold() {
+        this.element.classList.add("font-bold");
     }
 }
 
 class Board {
-    constructor(onCellClicked) {
+    constructor(config, onCellClicked, onBenchPieceSelected) {
+        const root = document.createElement("div")
+        root.className = "px-2";
+        root.classList.add("bg-" + config.colors.background);
+
+        const messageTop = new Message()
+        const messageBottom = new Message()
+        messageTop.reverse();
+
         const board = document.createElement("div")
-        board.className = "w-screen grid grid-flow-row grid-flows-4"
+        board.className = "w-full grid grid-cols-3 gap gap-[1px]"
 
         const cells = new Array(12);
-        for (var j = 0; j < 4; ++j) {
-            const row = document.createElement("div")
-            row.className = "grid grid-cols-3"
-
-            for (var i = 0; i < 3; ++i) {
-                const cell = new Cell(i, j, onCellClicked);
-                cells[j * 3 + i] = cell;
-                row.appendChild(cell.element)
+        for (var y = 0; y < 4; ++y) {
+            for (var x = 0; x < 3; ++x) {
+                const pos = [x, y];
+                const cell = new Cell(() => { onCellClicked(pos); });
+                cell.element.classList.add("bg-" + config.colors.board);
+                cells[x + y * 3] = cell;
+                board.appendChild(cell.element)
             }
-
-            board.appendChild(row)
         }
 
-        this.element = board;
+        const benchTop = new Bench(onBenchPieceSelected);
+        const benchBottom = new Bench(onBenchPieceSelected);
+
+        root.appendChild(messageTop.element)
+        root.appendChild(benchTop.element)
+        root.appendChild(board)
+        root.appendChild(benchBottom.element)
+        root.appendChild(messageBottom.element)
+
+        this.config = config;
+        this.benchTop = benchTop;
+        this.benchBottom = benchBottom;
+        this.messageTop = messageTop;
+        this.messageBottom = messageBottom;
+        this.element = root;
         this.cells = cells;
+
+        this.cellClickHandler = null;
+
+        this.changePlayer(PlayerBottom)
     }
 
-    clearAllCellBorders() {
+    _getCell(pos) {
+        return this.cells[pos[0] + pos[1] * 3];
+    }
+
+    _getBench(player) {
+        return player == PlayerTop ? this.benchTop : this.benchBottom;
+    }
+
+    _clearAllCellBorders() {
         this.cells.forEach((c) => {
             c.clearBorder();
         })
     }
 
-    setPiece(x, y, piece) {
-        this.cells[x + y * 3].setPiece(piece);
+    _updateMessage(curr, next) {
+        const config = this.config.message;
+
+        next.setText("あいてのばん");
+        next.changeBackgroundColor("bg-" + config.next_bg_color);
+        next.changeTextColor("text-" + config.next_text_color);
+
+        curr.setText("じぶんのばん");
+        curr.changeBackgroundColor("bg-" + config.curr_bg_color);
+        curr.changeTextColor("text-" + config.curr_text_color);
+
+    }
+
+    changePlayer(player) {
+        if (player == PlayerTop) {
+            this._updateMessage(this.messageTop, this.messageBottom);
+        } else {
+            this._updateMessage(this.messageBottom, this.messageTop);
+        }
+    }
+
+    finish(winner) {
+        let messageWinner;
+        let messageLoser;
+        if (winner == PlayerTop) {
+            messageWinner = this.messageTop;
+            messageLoser = this.messageBottom;
+        } else {
+            messageWinner = this.messageBottom;
+            messageLoser = this.messageTop;
+        }
+
+        messageWinner.setText("かち")
+        messageWinner.changeBackgroundColor("bg-" + this.config.message.winner_bg_color);
+        messageWinner.changeTextColor("text-" + this.config.message.winner_text_color);
+        messageWinner.setBold();
+        messageLoser.setText("まけ")
+    }
+
+    movePieceTo(piece, from_, to, capturedPiece) {
+        const srcCell = this._getCell(from_);
+        srcCell.removePiece();
+
+        const dstCell = this._getCell(to);
+        if (dstCell.piece != null)
+            dstCell.removePiece();
+
+        dstCell.setPiece(piece);
+        this._clearAllCellBorders();
+        if (capturedPiece != null)
+            this._getBench(capturedPiece.player).addPiece(capturedPiece)
+    }
+
+    putPieceFromBench(piece, to) {
+        this._clearAllCellBorders();
+        this._getBench(piece.player).removePiece(piece)
+        this._getCell(to).setPiece(piece);
+    }
+
+    selectPieceOn(pos, movableCells) {
+        this._clearAllCellBorders();
+        this._getCell(pos).setBorderBlue();
+        movableCells.forEach((p) => {
+            this._getCell(p).setBorderGreen();
+        })
+    }
+
+    // highlight empty cells
+    selectReserveOn(piece) {
+        this._clearAllCellBorders();
+        this.cells.forEach((c) => {
+            if (c.piece == null)
+                c.setBorderGreen();
+        });
+    }
+
+    setPiece(pos, piece) {
+        this._getCell(pos).setPiece(piece);
     }
 }
 
 export function init() {
-    const root = document.getElementById("animal")
-
-    const app = {
-        // cells: new Array(12),
-        currentPlayer: PlayerBottom,
-        selectedCell: null,
-        reserves: [[], []],
-
-        // cell: function(x, y) {
-        //     return this.cells[x + y * 3];
-        // },
+    const config = {
+        colors: {
+            background: "lime-400",
+            board: "lime-200",
+        },
+        message: {
+            curr_text_color: "white",
+            next_text_color: "black",
+            curr_bg_color: "blue-400",
+            next_bg_color: "white",
+            winner_bg_color: "pink-300",
+            winner_text_color: "red-700",
+        }
     };
 
+    console.log(window.screen.width, window.screen.height);
+    console.log(window.devicePixelRatio);
+    const game = new Game();
 
-    const header = document.createElement("div")
-    header.appendChild(document.createTextNode("help"))
+    const board = new Board(
+        config,
+        (pos) => { game.onCellClicked(pos); },
+        (piece) => { game.onBenchPieceClicked(piece); });
 
-    const benchTop = new Bench();
-    const benchBottom = new Bench();
+    game.board = board;
 
-    const Lion = new PieceType(PieceType.Lion, "l.svg",
-        [[-1, 1], [0, 1], [1, 1],
-        [-1, 0], [1, 0],
-        [-1, -1], [0, -1], [1, -1]])
-    const Chick = new PieceType(PieceType.Chick, "c.svg", [[0, -1]])
+    game.setPiece([1, 0], new Piece(Lion, PlayerTop));
+    game.setPiece([1, 1], new Piece(Chick, PlayerTop));
+    game.setPiece([0, 0], new Piece(Giraffe, PlayerTop));
+    game.setPiece([2, 0], new Piece(Elephant, PlayerTop));
 
-    const board = new Board((c) => { onCellClicked(app, c); });
-    app.board = board;
+    game.setPiece([1, 2], new Piece(Chick, PlayerBottom));
+    game.setPiece([1, 3], new Piece(Lion, PlayerBottom));
+    game.setPiece([0, 3], new Piece(Elephant, PlayerBottom));
+    game.setPiece([2, 3], new Piece(Giraffe, PlayerBottom));
 
-    board.setPiece(1, 0, new Piece(Lion, PlayerTop));
-    board.setPiece(1, 1, new Piece(Chick, PlayerTop));
-    board.setPiece(1, 2, new Piece(Chick, PlayerBottom));
-    board.setPiece(1, 3, new Piece(Lion, PlayerBottom));
-
-    root.appendChild(header)
-    root.appendChild(benchTop.element)
+    const root = document.getElementById("animal")
+    root.className = "w-full h-full flex items-center";
+    root.classList.add("bg-" + config.colors.background);
     root.appendChild(board.element)
-    root.appendChild(benchBottom.element)
 }
