@@ -1,5 +1,7 @@
 const PlayerTop = 0;
 const PlayerBottom = 1;
+const COLS = 3;
+const ROWS = 4;
 
 
 class PieceType {
@@ -62,7 +64,7 @@ function getDestinations(pos, piece) {
         const rev = piece.player == PlayerBottom ? 1 : -1;
         const x = x0 + direction[0] * rev;
         const y = y0 + direction[1] * rev;
-        if (x >= 0 && x < 3 && y >= 0 && y < 4) {
+        if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
             cells.push([x, y])
         }
     })
@@ -72,7 +74,7 @@ function getDestinations(pos, piece) {
 
 class Game {
     constructor() {
-        this.pieces = new Array(12); // array of piece
+        this.pieces = new Array(COLS * ROWS); // array of piece
         this.currentPlayer = PlayerBottom;
         this.reserves = [[], []];
         this.finished = false;
@@ -83,18 +85,18 @@ class Game {
 
         this.board = null;
 
-        for (let i = 0; i < 12; ++i) {
+        for (let i = 0; i < COLS * ROWS; ++i) {
             this.pieces[i] = null;
         }
     }
 
     _getPieceOn(pos) {
-        return this.pieces[pos[0] + pos[1] * 3];
+        return this.pieces[pos[0] + pos[1] * COLS];
     }
 
     _setPiece(pos, piece) {
         // piece can be null
-        this.pieces[pos[0] + pos[1] * 3] = piece;
+        this.pieces[pos[0] + pos[1] * COLS] = piece;
     }
 
     _swapPlayer() {
@@ -118,14 +120,14 @@ class Game {
 
     _checkTry() {
         if (this.currentPlayer == PlayerTop) {
-            for (let x = 0; x < 3; ++x) {
+            for (let x = 0; x < COLS; ++x) {
                 const p = this._getPieceOn([x, 0]);
                 if (p != null && p.player == PlayerBottom && p.type == Lion)
                     return PlayerBottom;
             }
         } else {
-            for (let x = 0; x < 3; ++x) {
-                const p = this._getPieceOn([x, 3]);
+            for (let x = 0; x < COLS; ++x) {
+                const p = this._getPieceOn([x, ROWS - 1]);
                 if (p != null && p.player == PlayerTop && p.type == Lion)
                     return PlayerTop;
             }
@@ -148,7 +150,7 @@ class Game {
         }
 
         if (piece.type == Chick &&
-            (this.currentPlayer == PlayerTop && to[1] == 3
+            (this.currentPlayer == PlayerTop && to[1] == ROWS - 1
                 || this.currentPlayer == PlayerBottom && to[1] == 0)) {
             // console.log("chick reached at last row");
             piece.type = Chicken;
@@ -393,13 +395,13 @@ class Board {
         const board = document.createElement("div")
         board.className = "w-full grid grid-cols-3 gap gap-[1px]"
 
-        const cells = new Array(12);
-        for (var y = 0; y < 4; ++y) {
-            for (var x = 0; x < 3; ++x) {
+        const cells = new Array(COLS * ROWS);
+        for (let y = 0; y < ROWS; ++y) {
+            for (let x = 0; x < COLS; ++x) {
                 const pos = [x, y];
                 const cell = new Cell(() => { onCellClicked(pos); });
                 cell.element.classList.add(config.colors.board);
-                cells[x + y * 3] = cell;
+                cells[x + y * COLS] = cell;
                 board.appendChild(cell.element)
             }
         }
@@ -427,7 +429,7 @@ class Board {
     }
 
     _getCell(pos) {
-        return this.cells[pos[0] + pos[1] * 3];
+        return this.cells[pos[0] + pos[1] * COLS];
     }
 
     _getBench(player) {
