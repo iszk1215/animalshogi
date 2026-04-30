@@ -171,6 +171,15 @@ describe("Game piece movement", () => {
     simple.movePieceTo(giraffe, [1, 1], [1, 0]);
     expect(simple.finished).toBe(true);
   });
+
+  it("ignores move when movePieceTo is called with invalid destination", () => {
+    const chick = game._getPieceOn([1, 2]);
+    const pieceBefore = game._getPieceOn([0, 0]);
+    game.movePieceTo(chick, [1, 2], [0, 0]);
+    expect(game._getPieceOn([1, 2])).toBe(chick);
+    expect(game._getPieceOn([0, 0])).toBe(pieceBefore);
+    expect(game.currentPlayer).toBe(PlayerBottom);
+  });
 });
 
 describe("Game try rule", () => {
