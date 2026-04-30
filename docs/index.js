@@ -136,6 +136,9 @@ class Game {
     }
 
     movePieceTo(piece, from_, to) {
+        if (!this.isMovable(piece, from_, to))
+            return;
+
         const captured = this._getPieceOn(to);
 
         this.selectedCell = null;
