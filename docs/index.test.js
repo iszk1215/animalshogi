@@ -174,32 +174,42 @@ describe("Game piece movement", () => {
 });
 
 describe("Game try rule", () => {
-  let game;
-
-  beforeEach(() => {
-    game = new Game();
-    game.setPiece([1, 0], new Piece(Lion, PlayerTop));
-    game.setPiece([1, 3], new Piece(Lion, PlayerBottom));
-  });
-
   it("PlayerBottom wins when lion enters y=0", () => {
-    const lion = game._getPieceOn([1, 3]);
-    game.movePieceTo(lion, [1, 3], [1, 2]);
-    game.movePieceTo(game._getPieceOn([1, 0]), [1, 0], [1, 1]);
-    game.movePieceTo(lion, [1, 2], [1, 1]);
-    game.movePieceTo(game._getPieceOn([1, 1]), [1, 1], [1, 2]);
-    game.movePieceTo(lion, [1, 1], [1, 0]);
-    expect(game.finished).toBe(true);
+    const g = new Game();
+    const lion = new Piece(Lion, PlayerBottom);
+    g.setPiece([0, 0], new Piece(Elephant, PlayerTop));
+    g.setPiece([1, 1], lion);
+    g.currentPlayer = PlayerBottom;
+    g.movePieceTo(lion, [1, 1], [1, 0]);
+    expect(g.finished).toBe(false);
+    g.movePieceTo(g._getPieceOn([0, 0]), [0, 0], [1, 1]);
+    expect(g.finished).toBe(true);
   });
 
   it("PlayerTop wins when lion enters y=3", () => {
-    const lion = game._getPieceOn([1, 0]);
-    game.movePieceTo(lion, [1, 0], [1, 1]);
-    game.movePieceTo(game._getPieceOn([1, 3]), [1, 3], [1, 2]);
-    game.movePieceTo(lion, [1, 1], [1, 2]);
-    game.movePieceTo(game._getPieceOn([1, 2]), [1, 2], [1, 1]);
-    game.movePieceTo(lion, [1, 2], [1, 3]);
-    expect(game.finished).toBe(true);
+    const g = new Game();
+    const lion = new Piece(Lion, PlayerTop);
+    g.setPiece([0, 3], new Piece(Elephant, PlayerBottom));
+    g.setPiece([1, 2], lion);
+    g.currentPlayer = PlayerTop;
+    g.movePieceTo(lion, [1, 2], [1, 3]);
+    expect(g.finished).toBe(false);
+    g.movePieceTo(g._getPieceOn([0, 3]), [0, 3], [1, 2]);
+    expect(g.finished).toBe(true);
+  });
+
+  it("Try does not count if lion can be captured on next turn", () => {
+    const g = new Game();
+    const lion = new Piece(Lion, PlayerBottom);
+    const elephant = new Piece(Elephant, PlayerTop);
+    g.setPiece([1, 1], lion);
+    g.setPiece([0, 1], elephant);
+    g.currentPlayer = PlayerBottom;
+    g.movePieceTo(lion, [1, 1], [1, 0]);
+    expect(g.finished).toBe(false);
+    g.movePieceTo(elephant, [0, 1], [1, 0]);
+    expect(g.finished).toBe(true);
+    expect(g.reserves[PlayerTop].some((p) => p.type.id === Lion.id)).toBe(true);
   });
 });
 
