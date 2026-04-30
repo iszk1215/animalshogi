@@ -83,11 +83,21 @@ class Game {
         this.selectedCell = null; // [x, y]
         this.selectedBenchPiece = null; // Piece
 
-        this.board = null;
+        this._listeners = {};
 
         for (let i = 0; i < COLS * ROWS; ++i) {
             this.pieces[i] = null;
         }
+    }
+
+    addListener(event, callback) {
+        this._listeners[event] = this._listeners[event] || [];
+        this._listeners[event].push(callback);
+    }
+
+    _emit(event, ...args) {
+        if (this._listeners[event])
+            this._listeners[event].forEach((cb) => cb(...args));
     }
 
     _getPieceOn(pos) {
@@ -161,23 +171,23 @@ class Game {
         }
 
 
-        this.board?.movePieceTo(piece, from_, to, captured);
+        this._emit("movePieceTo", piece, from_, to, captured);
 
         if (captured != null && captured.type == Lion) {
             this.finished = true;
-            this.board?.finish(this.currentPlayer);
+            this._emit("finish", this.currentPlayer);
             return;
         }
 
         const winner = this._checkTry();
         if (winner != null) {
             this.finished = true;
-            this.board?.finish(winner);
+            this._emit("finish", winner);
             return;
         }
 
         this._swapPlayer();
-        this.board?.changePlayer(this.currentPlayer)
+        this._emit("changePlayer", this.currentPlayer)
     }
 
     putPieceFromBench(to) {
@@ -196,27 +206,40 @@ class Game {
         this.selectedBenchPiece = null;
         this._swapPlayer();
 
-        this.board?.putPieceFromBench(piece, to);
-        this.board?.changePlayer(this.currentPlayer)
+        this._emit("putPieceFromBench", piece, to);
+        this._emit("changePlayer", this.currentPlayer)
     }
 
     selectPieceOn(pos, piece) {
         this.selectedCell = pos;
         this.selectedBenchPiece = null;
 
-        this.board?.selectPieceOn(pos, this.getMovableCells(pos, piece));
+        this._emit("selectPieceOn", pos, this.getMovableCells(pos, piece));
     }
 
     selectReserveOn(piece) {
         this.selectedCell = null;
         this.selectedBenchPiece = piece;
 
-        this.board?.selectReserveOn();
+        this._emit("selectReserveOn");
     }
 
     setPiece(pos, piece) {
         this._setPiece(pos, piece);
-        this.board?.setPiece(pos, piece);
+        this._emit("setPiece", pos, piece);
+    }
+
+    registerBoard(board) {
+        this.addListener("movePieceTo", (piece, from_, to, captured) =>
+            board.movePieceTo(piece, from_, to, captured));
+        this.addListener("finish", (winner) => board.finish(winner));
+        this.addListener("changePlayer", (player) => board.changePlayer(player));
+        this.addListener("putPieceFromBench", (piece, to) =>
+            board.putPieceFromBench(piece, to));
+        this.addListener("selectPieceOn", (pos, cells) =>
+            board.selectPieceOn(pos, cells));
+        this.addListener("selectReserveOn", () => board.selectReserveOn());
+        this.addListener("setPiece", (pos, piece) => board.setPiece(pos, piece));
     }
 
     onBenchPieceClicked(piece) {
@@ -555,14 +578,13 @@ export function init() {
         }
     };
 
-    const game = new Game();
-
     const board = new Board(
         config,
         (pos) => { game.onCellClicked(pos); },
         (piece) => { game.onBenchPieceClicked(piece); });
 
-    game.board = board;
+    const game = new Game();
+    game.registerBoard(board);
 
     game.setPiece([1, 0], new Piece(Lion, PlayerTop));
     game.setPiece([1, 1], new Piece(Chick, PlayerTop));
