@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   Game,
   Piece,
+  PieceId,
   Lion,
   Elephant,
   Giraffe,
@@ -159,7 +160,18 @@ describe("Game piece movement", () => {
     const chick = new Piece(Chick, PlayerBottom);
     game.setPiece([1, 1], chick);
     game.movePieceTo(chick, [1, 1], [1, 0]);
-    expect(chick.type.id).toBe(Chicken.id);
+    expect(chick.type.id).toBe(PieceId.Chicken);
+  });
+
+  it("unpromotes chicken to chick when captured", () => {
+    const g = new Game();
+    const chicken = new Piece(Chicken, PlayerTop);
+    g.setPiece([1, 1], chicken);
+    const lion = new Piece(Lion, PlayerBottom);
+    g.setPiece([1, 2], lion);
+    g.currentPlayer = PlayerBottom;
+    g.movePieceTo(lion, [1, 2], [1, 1]);
+    expect(g.reserves[PlayerBottom][0].type.id).toBe(PieceId.Chick);
   });
 
   it("captures lion ends the game", () => {
@@ -218,7 +230,7 @@ describe("Game try rule", () => {
     expect(g.finished).toBe(false);
     g.movePieceTo(elephant, [0, 1], [1, 0]);
     expect(g.finished).toBe(true);
-    expect(g.reserves[PlayerTop].some((p) => p.type.id === Lion.id)).toBe(true);
+    expect(g.reserves[PlayerTop].some((p) => p.type.id === PieceId.Lion)).toBe(true);
   });
 });
 
@@ -238,7 +250,7 @@ describe("Game bench piece placement", () => {
     game.putPieceFromBench([0, 0]);
     const piece = game._getPieceOn([0, 0]);
     expect(piece).not.toBeNull();
-    expect(piece.type.id).toBe(Chick.id);
+    expect(piece.type.id).toBe(PieceId.Chick);
     expect(piece.player).toBe(PlayerBottom);
   });
 
@@ -255,7 +267,7 @@ describe("Game bench piece placement", () => {
   it("cannot place bench piece on occupied cell", () => {
     game.putPieceFromBench([1, 3]);
     const piece = game._getPieceOn([1, 3]);
-    expect(piece.type.id).toBe(Lion.id);
+    expect(piece.type.id).toBe(PieceId.Lion);
     expect(piece.player).toBe(PlayerBottom);
     expect(game.reserves[PlayerBottom].length).toBe(1);
   });
