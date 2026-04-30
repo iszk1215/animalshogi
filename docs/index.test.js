@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   Game,
   Piece,
@@ -226,11 +226,18 @@ describe("Game try rule", () => {
     g.setPiece([1, 1], lion);
     g.setPiece([0, 1], elephant);
     g.currentPlayer = PlayerBottom;
+
+    const finishSpy = vi.fn();
+    g.addListener("finish", finishSpy);
+
     g.movePieceTo(lion, [1, 1], [1, 0]);
     expect(g.finished).toBe(false);
+    expect(finishSpy).not.toHaveBeenCalled();
+
     g.movePieceTo(elephant, [0, 1], [1, 0]);
+
     expect(g.finished).toBe(true);
-    expect(g.reserves[PlayerTop].some((p) => p.type.id === PieceId.Lion)).toBe(true);
+    expect(finishSpy).toHaveBeenCalledWith(PlayerTop);
   });
 });
 
