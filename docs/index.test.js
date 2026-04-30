@@ -159,7 +159,7 @@ describe("Game piece movement", () => {
     const chick = new Piece(Chick, PlayerBottom);
     game.setPiece([1, 1], chick);
     game.movePieceTo(chick, [1, 1], [1, 0]);
-    expect(chick.type.id).toBe(4);
+    expect(chick.type.id).toBe(Chicken.id);
   });
 
   it("captures lion ends the game", () => {
@@ -219,7 +219,7 @@ describe("Game bench piece placement", () => {
     game.putPieceFromBench([0, 0]);
     const piece = game._getPieceOn([0, 0]);
     expect(piece).not.toBeNull();
-    expect(piece.type.id).toBe(3);
+    expect(piece.type.id).toBe(Chick.id);
     expect(piece.player).toBe(PlayerBottom);
   });
 
@@ -233,11 +233,12 @@ describe("Game bench piece placement", () => {
     expect(game.reserves[PlayerBottom].length).toBe(0);
   });
 
-  it("overwrites occupied cell when placing bench piece", () => {
+  it("cannot place bench piece on occupied cell", () => {
     game.putPieceFromBench([1, 3]);
     const piece = game._getPieceOn([1, 3]);
-    expect(piece.type.id).toBe(3);
+    expect(piece.type.id).toBe(Lion.id);
     expect(piece.player).toBe(PlayerBottom);
+    expect(game.reserves[PlayerBottom].length).toBe(1);
   });
 });
 
