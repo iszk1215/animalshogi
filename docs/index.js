@@ -4,29 +4,25 @@ const COLS = 3;
 const ROWS = 4;
 
 
-class PieceType {
-    static Lion = 0;
-    static Elephant = 1;
-    static Giraffe = 2;
-    static Chick = 3;
-    static Chicken = 4;
+const PieceId = Object.freeze({ Lion: 0, Elephant: 1, Giraffe: 2, Chick: 3, Chicken: 4 });
 
+class PieceType {
     constructor(id, directions) {
         this.id = id;
         this.directions = directions;
     }
 };
 
-const Lion = new PieceType(PieceType.Lion,
+const Lion = new PieceType(PieceId.Lion,
     [[-1, 1], [0, 1], [1, 1],
     [-1, 0], [1, 0],
     [-1, -1], [0, -1], [1, -1]])
-const Elephant = new PieceType(PieceType.Elephant,
+const Elephant = new PieceType(PieceId.Elephant,
     [[-1, -1], [1, -1], [-1, 1], [1, 1]])
-const Giraffe = new PieceType(PieceType.Giraffe,
+const Giraffe = new PieceType(PieceId.Giraffe,
     [[0, -1], [-1, 0], [1, 0], [0, 1]])
-const Chick = new PieceType(PieceType.Chick, [[0, -1]])
-const Chicken = new PieceType(PieceType.Chicken,
+const Chick = new PieceType(PieceId.Chick, [[0, -1]])
+const Chicken = new PieceType(PieceId.Chicken,
     [[-1, -1], [0, -1], [1, -1],
     [-1, 0], [0, 1], [1, 0]])
 
@@ -39,11 +35,11 @@ class Piece {
 }
 
 const ImageFiles = {
-    [PieceType.Lion]: "img/lion.png",
-    [PieceType.Elephant]: "img/elephant.png",
-    [PieceType.Giraffe]: "img/giraffe.png",
-    [PieceType.Chick]: "img/chick.png",
-    [PieceType.Chicken]: "img/chicken.png"
+    [PieceId.Lion]: "img/lion.png",
+    [PieceId.Elephant]: "img/elephant.png",
+    [PieceId.Giraffe]: "img/giraffe.png",
+    [PieceId.Chick]: "img/chick.png",
+    [PieceId.Chicken]: "img/chicken.png"
 }
 
 
@@ -602,4 +598,4 @@ export function init() {
     root.appendChild(board.element)
 }
 
-export { Game, Piece, PieceType, Lion, Elephant, Giraffe, Chick, Chicken, PlayerTop, PlayerBottom, COLS, ROWS, getDestinations };
+export { Game, Piece, PieceType, PieceId, Lion, Elephant, Giraffe, Chick, Chicken, PlayerTop, PlayerBottom, COLS, ROWS, getDestinations };
