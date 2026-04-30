@@ -157,23 +157,23 @@ class Game {
         }
 
 
-        this.board.movePieceTo(piece, from_, to, captured);
+        this.board?.movePieceTo(piece, from_, to, captured);
 
         if (captured != null && captured.type == Lion) {
             this.finished = true;
-            this.board.finish(this.currentPlayer);
+            this.board?.finish(this.currentPlayer);
             return;
         }
 
         const winner = this._checkTry();
         if (winner != null) {
             this.finished = true;
-            this.board.finish(winner);
+            this.board?.finish(winner);
             return;
         }
 
         this._swapPlayer();
-        this.board.changePlayer(this.currentPlayer)
+        this.board?.changePlayer(this.currentPlayer)
     }
 
     putPieceFromBench(to) {
@@ -189,27 +189,27 @@ class Game {
         this.selectedBenchPiece = null;
         this._swapPlayer();
 
-        this.board.putPieceFromBench(piece, to);
-        this.board.changePlayer(this.currentPlayer)
+        this.board?.putPieceFromBench(piece, to);
+        this.board?.changePlayer(this.currentPlayer)
     }
 
     selectPieceOn(pos, piece) {
         this.selectedCell = pos;
         this.selectedBenchPiece = null;
 
-        this.board.selectPieceOn(pos, this.getMovableCells(pos, piece));
+        this.board?.selectPieceOn(pos, this.getMovableCells(pos, piece));
     }
 
     selectReserveOn(piece) {
         this.selectedCell = null;
         this.selectedBenchPiece = piece;
 
-        this.board.selectReserveOn();
+        this.board?.selectReserveOn();
     }
 
     setPiece(pos, piece) {
         this._setPiece(pos, piece);
-        this.board.setPiece(pos, piece);
+        this.board?.setPiece(pos, piece);
     }
 
     onBenchPieceClicked(piece) {
@@ -572,3 +572,5 @@ export function init() {
     root.classList.add(config.colors.background);
     root.appendChild(board.element)
 }
+
+export { Game, Piece, PieceType, Lion, Elephant, Giraffe, Chick, Chicken, PlayerTop, PlayerBottom, COLS, ROWS, getDestinations };
