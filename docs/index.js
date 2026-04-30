@@ -128,18 +128,13 @@ class Game {
     }
 
     _checkTry() {
-        if (this.currentPlayer == PlayerTop) {
-            for (let x = 0; x < COLS; ++x) {
-                const p = this._getPieceOn([x, 0]);
-                if (p != null && p.player == PlayerBottom && p.type == Lion)
-                    return PlayerBottom;
-            }
-        } else {
-            for (let x = 0; x < COLS; ++x) {
-                const p = this._getPieceOn([x, ROWS - 1]);
-                if (p != null && p.player == PlayerTop && p.type == Lion)
-                    return PlayerTop;
-            }
+        const targetRow = this.currentPlayer === PlayerTop ? 0 : ROWS - 1;
+        const opponent = this.currentPlayer === PlayerTop ? PlayerBottom : PlayerTop;
+
+        for (let x = 0; x < COLS; ++x) {
+            const p = this._getPieceOn([x, targetRow]);
+            if (p != null && p.player === opponent && p.type === Lion)
+                return opponent;
         }
         return null;
     }
