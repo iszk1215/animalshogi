@@ -163,6 +163,17 @@ describe("Game piece movement", () => {
     expect(chick.type.id).toBe(PieceId.Chicken);
   });
 
+  it("unpromotes chicken to chick when captured", () => {
+    const g = new Game();
+    const chicken = new Piece(Chicken, PlayerTop);
+    g.setPiece([1, 1], chicken);
+    const lion = new Piece(Lion, PlayerBottom);
+    g.setPiece([1, 2], lion);
+    g.currentPlayer = PlayerBottom;
+    g.movePieceTo(lion, [1, 2], [1, 1]);
+    expect(g.reserves[PlayerBottom][0].type.id).toBe(PieceId.Chick);
+  });
+
   it("captures lion ends the game", () => {
     const simple = new Game();
     const lion = new Piece(Lion, PlayerTop);
