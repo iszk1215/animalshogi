@@ -177,6 +177,9 @@ class Game {
     }
 
     putPieceFromBench(to) {
+        if (this._getPieceOn(to) != null)
+            return;
+
         const piece = this.selectedBenchPiece;
         console.assert(this.currentPlayer == piece.player)
 
