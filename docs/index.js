@@ -188,7 +188,7 @@ class Game {
             return;
 
         const piece = this.selectedBenchPiece;
-        console.assert(this.currentPlayer == piece.player)
+        console.assert(this.currentPlayer === piece.player, "Bench piece must belong to current player");
 
         const index = this.reserves[this.currentPlayer].findIndex((p) => {
             return p == piece;
@@ -243,7 +243,6 @@ class Game {
     }
 
     onCellClicked(pos) {
-        // console.log("Game.onCellClicked:", x, y);
         if (this.finished)
             return;
 
@@ -264,7 +263,6 @@ class Game {
 class Cell {
     constructor(onclick) {
         const cell = document.createElement("div")
-        // cell.className = "border border-black aspect-square flex items-center justify-center caret-transparent"
         cell.className = "aspect-square flex items-center justify-center caret-transparent"
         this.element = cell;
         this.borderClassesUnselected = ["outline", "outline-1", "outline-black"]
@@ -277,23 +275,16 @@ class Cell {
         });
     }
 
-    hasPiece() {
-        return this.piece != null;
-    }
-
     changeBorder(classNames) {
         this._removeAndAdd(this.currentBorderClasses, classNames);
         this.currentBorderClasses = classNames;
     }
 
     setBorderBlue() {
-        // this.changeBorder(["outline", "outline-4", "outline-blue-400"])
         this.changeBorder(["outline", "outline-1", "outline-black", "border", "border-8", "border-blue-400"])
     }
 
     setBorderGreen() {
-        // this.changeBorder(["outline", "outline-4", "outline-green-400"])
-        // this.changeBorder(["outline", "outline-1", "outline-black", "border", "border-4", "border-green-400"])
         this.changeBorder(["outline", "outline-1", "outline-black", "border", "border-8", "border-green-600"])
     }
 
@@ -316,7 +307,6 @@ class Cell {
         this.piece = piece
 
         const img = new Image();
-        //img.className = "p-1";
         img.src = ImageFiles[piece.type.id];
         if (piece.player == PlayerTop) {
             img.classList.add("rotate-180");
@@ -367,7 +357,7 @@ class Bench {
     }
 
     addPiece(piece) {
-        // assert this.num < 6
+        console.assert(this.num < 6, "Bench is full");
         this.slots[this.num++].setPiece(piece)
     }
 }
@@ -445,8 +435,6 @@ class Board {
         this.messageBottom = messageBottom;
         this.element = root;
         this.cells = cells;
-
-        this.cellClickHandler = null;
 
         this.changePlayer(PlayerBottom)
     }
