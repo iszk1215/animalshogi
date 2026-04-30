@@ -46,7 +46,7 @@ const ImageFiles = {
 }
 
 
-function remove_and_add(element, removeList, addList) {
+function removeAndAdd(element, removeList, addList) {
     removeList.forEach((c) => {
         element.classList.remove(c);
     })
@@ -56,8 +56,8 @@ function remove_and_add(element, removeList, addList) {
 }
 
 // piece is on `pos`
-function getDestinations(pos, piece) {
-    const [x0, y0] = pos;
+function getDestinations(sourcePos, piece) {
+    const [x0, y0] = sourcePos;
     const cells = [];
     piece.type.directions.forEach((direction) => {
         const rev = piece.player == PlayerBottom ? 1 : -1;
@@ -113,16 +113,16 @@ class Game {
             this.currentPlayer == PlayerTop ? PlayerBottom : PlayerTop;
     }
 
-    // piece is on from_
-    getMovableCells(from_, piece) {
-        return getDestinations(from_, piece).filter((pos) => {
+    // piece is on `sourcePos`
+    getMovableCells(sourcePos, piece) {
+        return getDestinations(sourcePos, piece).filter((pos) => {
             const p = this._getPieceOn(pos);
             return p == null || p.player != piece.player;
         });
     }
 
-    isMovable(piece, from_, to) {
-        return this.getMovableCells(from_, piece).some((pos) => {
+    isMovable(piece, sourcePos, to) {
+        return this.getMovableCells(sourcePos, piece).some((pos) => {
             return pos[0] == to[0] && pos[1] == to[1];
         });
     }
@@ -145,14 +145,14 @@ class Game {
     }
 
     // Ignore invalid moves
-    movePieceTo(piece, from_, to) {
-        if (!this.isMovable(piece, from_, to))
+    movePieceTo(piece, sourcePos, to) {
+        if (!this.isMovable(piece, sourcePos, to))
             return;
 
         const captured = this._getPieceOn(to);
 
         this.selectedCell = null;
-        this._setPiece(from_, null);
+        this._setPiece(sourcePos, null);
         this._setPiece(to, piece);
 
         if (captured != null) {
@@ -169,7 +169,7 @@ class Game {
         }
 
 
-        this._emit("movePieceTo", piece, from_, to, captured);
+        this._emit("movePieceTo", piece, sourcePos, to, captured);
 
         if (captured != null && captured.type == Lion) {
             this.finished = true;
@@ -228,8 +228,8 @@ class Game {
     }
 
     registerBoard(board) {
-        this.addListener("movePieceTo", (piece, from_, to, captured) =>
-            board.movePieceTo(piece, from_, to, captured));
+        this.addListener("movePieceTo", (piece, sourcePos, to, captured) =>
+            board.movePieceTo(piece, sourcePos, to, captured));
         this.addListener("finish", (winner) => board.finish(winner));
         this.addListener("changePlayer", (player) => board.changePlayer(player));
         this.addListener("putPieceFromBench", (piece, to) =>
@@ -287,7 +287,7 @@ class Cell {
     }
 
     changeBorder(classNames) {
-        this._remove_and_add(this.currentBorderClasses, classNames);
+        this._removeAndAdd(this.currentBorderClasses, classNames);
         this.currentBorderClasses = classNames;
     }
 
@@ -306,8 +306,8 @@ class Cell {
         this.changeBorder(this.borderClassesUnselected);
     }
 
-    _remove_and_add(r, a) {
-        remove_and_add(this.element, r, a);
+    _removeAndAdd(r, a) {
+        removeAndAdd(this.element, r, a);
     }
 
     removePiece() {
@@ -337,7 +337,7 @@ class Bench {
 
         const slots = []; // Cell
         for (let i = 0; i < 6; ++i) {
-            const cell = new Cell(() => { this._onclick(i); });
+            const cell = new Cell(() => { this._onClick(i); });
             cell.element.classList.add("p-1");
             cell.borderClassesUnselected = []
             cell.clearBorder()
@@ -351,7 +351,7 @@ class Bench {
         this.pieceClickHandler = pieceClickHandler;
     }
 
-    _onclick(index) {
+    _onClick(index) {
         if (index < this.num)
             this.pieceClickHandler(this.slots[index].piece);
     }
@@ -396,12 +396,12 @@ class Message {
     }
 
     changeBackgroundColor(color) {
-        remove_and_add(this.element, [this.currentBackgroundColor], [color])
+        removeAndAdd(this.element, [this.currentBackgroundColor], [color])
         this.currentBackgroundColor = color;
     }
 
     changeTextColor(color) {
-        remove_and_add(this.element, [this.currentTextColor], [color])
+        removeAndAdd(this.element, [this.currentTextColor], [color])
         this.currentTextColor = color;
     }
 
@@ -473,13 +473,13 @@ class Board {
     _updateMessage(curr, next) {
         const config = this.config.message;
 
-        next.setText(config.text.your_turn);
-        next.changeBackgroundColor(config.color.next_bg);
-        next.changeTextColor(config.color.next_text);
+        next.setText(config.text.yourTurn);
+        next.changeBackgroundColor(config.color.nextBg);
+        next.changeTextColor(config.color.nextText);
 
-        curr.setText(config.text.my_turn);
-        curr.changeBackgroundColor(config.color.curr_bg);
-        curr.changeTextColor(config.color.curr_text);
+        curr.setText(config.text.myTurn);
+        curr.changeBackgroundColor(config.color.currBg);
+        curr.changeTextColor(config.color.currText);
     }
 
     changePlayer(player) {
@@ -504,14 +504,14 @@ class Board {
         let config = this.config.message;
 
         messageWinner.setText(config.text.win);
-        messageWinner.changeBackgroundColor(config.color.winner_bg);
-        messageWinner.changeTextColor(config.color.winner_text);
+        messageWinner.changeBackgroundColor(config.color.winnerBg);
+        messageWinner.changeTextColor(config.color.winnerText);
         messageWinner.setBold();
         messageLoser.setText(config.text.lose);
     }
 
-    movePieceTo(piece, from_, to, capturedPiece) {
-        const srcCell = this._getCell(from_);
+    movePieceTo(piece, sourcePos, to, capturedPiece) {
+        const srcCell = this._getCell(sourcePos);
         srcCell.removePiece();
 
         const dstCell = this._getCell(to);
@@ -560,18 +560,18 @@ export function init() {
         },
         message: {
             text: {
-                my_turn: "じぶんのばん",
-                your_turn: "あいてのばん",
+                myTurn: "じぶんのばん",
+                yourTurn: "あいてのばん",
                 win: "かち",
                 lose: "まけ",
             },
             color: {
-                curr_text: "text-white",
-                next_text: "text-black",
-                curr_bg: "bg-blue-400",
-                next_bg: "bg-white",
-                winner_bg: "bg-pink-300",
-                winner_text: "text-red-700",
+                currText: "text-white",
+                nextText: "text-black",
+                currBg: "bg-blue-400",
+                nextBg: "bg-white",
+                winnerBg: "bg-pink-300",
+                winnerText: "text-red-700",
             },
         }
     };
