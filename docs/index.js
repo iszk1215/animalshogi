@@ -135,6 +135,7 @@ class Game {
         return null;
     }
 
+    // Ignore invalid moves
     movePieceTo(piece, from_, to) {
         if (!this.isMovable(piece, from_, to))
             return;
