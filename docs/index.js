@@ -35,6 +35,10 @@ class Piece {
         this.type = type;
         this.player = player;
     }
+
+    isType(type) {
+        return this.type === type;
+    }
 }
 
 const ImageFiles = {
@@ -133,7 +137,7 @@ class Game {
 
         for (let x = 0; x < COLS; ++x) {
             const p = this._getPieceOn({ x, y: targetRow });
-            if (p != null && p.player === opponent && p.type === Lion)
+            if (p != null && p.player === opponent && p.isType(Lion))
                 return opponent;
         }
         return null;
@@ -166,7 +170,7 @@ class Game {
 
         this._emit("movePieceTo", piece, sourcePos, to, captured);
 
-        if (captured != null && captured.type == Lion) {
+        if (captured != null && captured.isType(Lion)) {
             this.finished = true;
             this._emit("finish", this.currentPlayer);
             return;
