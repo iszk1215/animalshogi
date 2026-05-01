@@ -57,14 +57,14 @@ function removeAndAdd(element, removeList, addList) {
 
 // piece is on `pos`
 function getDestinations(sourcePos, piece) {
-    const [x0, y0] = sourcePos;
+    const { x: x0, y: y0 } = sourcePos;
     const cells = [];
     piece.type.directions.forEach((direction) => {
         const rev = piece.player == PlayerBottom ? 1 : -1;
         const x = x0 + direction[0] * rev;
         const y = y0 + direction[1] * rev;
         if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
-            cells.push([x, y])
+            cells.push({ x, y })
         }
     })
 
@@ -79,7 +79,7 @@ class Game {
         this.finished = false;
 
         // Exclusive
-        this.selectedCell = null; // [x, y]
+        this.selectedCell = null; // { x, y }
         this.selectedBenchPiece = null; // Piece
 
         this._listeners = {};
@@ -100,12 +100,12 @@ class Game {
     }
 
     _getPieceOn(pos) {
-        return this.pieces[pos[0] + pos[1] * COLS];
+        return this.pieces[pos.x + pos.y * COLS];
     }
 
     _setPiece(pos, piece) {
         // piece can be null
-        this.pieces[pos[0] + pos[1] * COLS] = piece;
+        this.pieces[pos.x + pos.y * COLS] = piece;
     }
 
     _swapPlayer() {
@@ -123,7 +123,7 @@ class Game {
 
     isMovable(piece, sourcePos, to) {
         return this.getMovableCells(sourcePos, piece).some((pos) => {
-            return pos[0] == to[0] && pos[1] == to[1];
+            return pos.x === to.x && pos.y === to.y;
         });
     }
 
@@ -132,7 +132,7 @@ class Game {
         const opponent = this.currentPlayer === PlayerTop ? PlayerBottom : PlayerTop;
 
         for (let x = 0; x < COLS; ++x) {
-            const p = this._getPieceOn([x, targetRow]);
+            const p = this._getPieceOn({ x, y: targetRow });
             if (p != null && p.player === opponent && p.type === Lion)
                 return opponent;
         }
@@ -158,8 +158,8 @@ class Game {
         }
 
         if (piece.type.promotesTo &&
-            (this.currentPlayer == PlayerTop && to[1] == ROWS - 1
-                || this.currentPlayer == PlayerBottom && to[1] == 0)) {
+            (this.currentPlayer == PlayerTop && to.y === ROWS - 1
+                || this.currentPlayer == PlayerBottom && to.y === 0)) {
             piece.type = piece.type.promotesTo;
         }
 
@@ -411,7 +411,7 @@ class Board {
         const cells = new Array(COLS * ROWS);
         for (let y = 0; y < ROWS; ++y) {
             for (let x = 0; x < COLS; ++x) {
-                const pos = [x, y];
+                const pos = { x, y };
                 const cell = new Cell(() => { onCellClicked(pos); });
                 cell.element.classList.add(config.colors.board);
                 cells[x + y * COLS] = cell;
@@ -440,7 +440,7 @@ class Board {
     }
 
     _getCell(pos) {
-        return this.cells[pos[0] + pos[1] * COLS];
+        return this.cells[pos.x + pos.y * COLS];
     }
 
     _getBench(player) {
@@ -567,15 +567,15 @@ export function init() {
     const game = new Game();
     game.registerBoard(board);
 
-    game.setPiece([1, 0], new Piece(Lion, PlayerTop));
-    game.setPiece([1, 1], new Piece(Chick, PlayerTop));
-    game.setPiece([0, 0], new Piece(Giraffe, PlayerTop));
-    game.setPiece([2, 0], new Piece(Elephant, PlayerTop));
+    game.setPiece({ x: 1, y: 0 }, new Piece(Lion, PlayerTop));
+    game.setPiece({ x: 1, y: 1 }, new Piece(Chick, PlayerTop));
+    game.setPiece({ x: 0, y: 0 }, new Piece(Giraffe, PlayerTop));
+    game.setPiece({ x: 2, y: 0 }, new Piece(Elephant, PlayerTop));
 
-    game.setPiece([1, 2], new Piece(Chick, PlayerBottom));
-    game.setPiece([1, 3], new Piece(Lion, PlayerBottom));
-    game.setPiece([0, 3], new Piece(Elephant, PlayerBottom));
-    game.setPiece([2, 3], new Piece(Giraffe, PlayerBottom));
+    game.setPiece({ x: 1, y: 2 }, new Piece(Chick, PlayerBottom));
+    game.setPiece({ x: 1, y: 3 }, new Piece(Lion, PlayerBottom));
+    game.setPiece({ x: 0, y: 3 }, new Piece(Elephant, PlayerBottom));
+    game.setPiece({ x: 2, y: 3 }, new Piece(Giraffe, PlayerBottom));
 
     const root = document.getElementById("animal")
     root.className = "w-full h-full flex items-center";
